@@ -1,0 +1,8 @@
+*.cache
+*.core
+*.swp
+*.lib
+*.o
+*.a
+
+build/
