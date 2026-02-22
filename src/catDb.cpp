@@ -7,19 +7,32 @@ import wordmeter;
 
 int main(int argc, char **argv) {
   if (argc < 2) {
-    std::cerr << "Invocation not valid; Usage: <inputFile.db> [<maxPosColSz>]";
+    std::cerr << "Invocation not valid; Usage: [options] <inputFile.db> "
+                 "[<maxPosColSz>]";
     std::cerr << std::endl;
     return 1;
   }
 
-  std::string const inputFile{argv[1]};
-  std::string maxPosStr{};
-  std::size_t maxPositions{};
+  std::string inputFile{}, maxPosStr{};
+  long maxPositions{-1};
+  short posArgIdx{};
+  bool sortByFreq{};
 
-  if (argc > 2) {
-    maxPosStr = argv[2];
+  for (int i = 1; i < argc; ++i) {
+    if (std::string{argv[i]} == "--sortByFreq")
+      sortByFreq = true;
+    else {
+      if (!posArgIdx)
+        inputFile = argv[i];
+      else
+        maxPosStr = argv[i];
+      ++posArgIdx;
+    }
+  }
+
+  if (maxPosStr.size()) {
     try {
-      maxPositions = std::stoul(maxPosStr);
+      maxPositions = std::stol(maxPosStr);
     } catch (...) {
       std::cerr << "Failed to convert: " << maxPosStr << " to number\n";
       return 1;
@@ -32,8 +45,5 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-  if (argc > 2)
-    print(db, std::cout, maxPositions);
-  else
-    print(db, std::cout);
+  print(db, std::cout, maxPositions, sortByFreq);
 }

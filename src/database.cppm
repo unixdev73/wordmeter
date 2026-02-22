@@ -43,13 +43,11 @@ bool write(DatabasePtr const &database, std::string const &outputFile);
 // Create a database structure from a binary file
 bool read(std::string const &inputBinaryFile, DatabasePtr &database);
 
-// Display the contents of a database structure
-void print(DatabasePtr const &database, std::ostream &outStream);
-
 // Display the database, and only list up to maxPosCnt positions for each entry
 void print(DatabasePtr const &database,
            std::ostream &outStream,
-           std::size_t const maxPosCnt);
+           std::size_t const maxPosCnt,
+           bool sortByFreq);
 
 std::size_t getTotalWordCount(DatabasePtr const &database);
 

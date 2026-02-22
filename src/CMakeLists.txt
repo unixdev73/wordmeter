@@ -27,4 +27,7 @@ target_link_libraries(calcStat PRIVATE wordmeter)
 
 add_executable(catDb catDb.cpp)
 target_link_libraries(catDb PRIVATE wordmeter)
-# Usage: catDb <inputFile.db> [<maxPosColSz>]
+# Usage: catDb [options] <inputFile.db> [<maxPosColSz>]
+
+# Options:
+# --sortByFreq sorts the output by popularity in descending order.

@@ -22,6 +22,7 @@ module;
 
 #include <filesystem>
 #include <functional>
+#include <algorithm>
 #include <stdexcept>
 #include <iostream>
 #include <fstream>
@@ -169,13 +170,10 @@ bool write(DatabasePtr const &database, std::string const &outputFile) {
   return true;
 }
 
-void print(DatabasePtr const &database, std::ostream &outStream) {
-  print(database, outStream, -1);
-}
-
 void print(DatabasePtr const &database,
            std::ostream &outStream,
-           std::size_t const maxPosCnt) {
+           std::size_t const maxPosCnt,
+           bool sortByFreq) {
   auto const &words = database->words;
   if (words.empty())
     return;
@@ -187,7 +185,26 @@ void print(DatabasePtr const &database,
     maxWordSz = std::max(maxWordSz, word.size());
   }
 
-  for (auto const &[word, info] : words) {
+  struct WordT {
+    std::string id{};
+    WordInfo info{};
+  };
+
+  std::vector<WordT> wordTable{};
+  wordTable.reserve(words.size());
+  for (auto const &[word, info] : words)
+    wordTable.push_back(WordT{word, info});
+
+  if (sortByFreq) {
+    auto predicate = [](auto const &a, auto const &b) {
+      return a.info.positions.size() > b.info.positions.size();
+    };
+    std::sort(wordTable.begin(), wordTable.end(), predicate);
+  }
+
+  for (auto const &wordEntry : wordTable) {
+    auto const &word = wordEntry.id;
+    auto const &info = wordEntry.info;
     outStream << std::left << std::setw(maxWordSz) << word << " ";
     outStream << std::setw(maxOcc) << info.positions.size() << " ";
     for (std::size_t i = 0; i < maxPosCnt && i < info.positions.size(); ++i) {
