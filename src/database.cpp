@@ -202,11 +202,13 @@ void print(DatabasePtr const &database,
     std::sort(wordTable.begin(), wordTable.end(), predicate);
   }
 
+  std::string const maxOccStr = std::to_string(maxOcc);
+
   for (auto const &wordEntry : wordTable) {
     auto const &word = wordEntry.id;
     auto const &info = wordEntry.info;
     outStream << std::left << std::setw(maxWordSz) << word << " ";
-    outStream << std::setw(maxOcc) << info.positions.size() << " ";
+    outStream << std::setw(maxOccStr.size()) << info.positions.size() << " ";
     for (std::size_t i = 0; i < maxPosCnt && i < info.positions.size(); ++i) {
       outStream << info.positions[i];
       if (i < std::min(maxPosCnt - 1, info.positions.size() - 1))
