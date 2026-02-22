@@ -31,3 +31,5 @@ target_link_libraries(catDb PRIVATE wordmeter)
 
 # Options:
 # --sortByFreq sorts the output by popularity in descending order.
+# --wordCount prints only the number of unique words in the database.
+# --makePairs[=N] prints all (N^2) word pairs of the N most common words.

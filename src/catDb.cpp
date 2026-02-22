@@ -2,6 +2,7 @@
 #include <functional>
 #include <iostream>
 #include <string>
+#include <regex>
 
 import wordmeter;
 
@@ -16,11 +17,28 @@ int main(int argc, char **argv) {
   std::string inputFile{}, maxPosStr{};
   long maxPositions{-1};
   short posArgIdx{};
-  bool sortByFreq{};
+  bool sortByFreq{}, wordCount{}, makePairs{};
+  std::size_t pairWordCount{};
+  std::smatch match{};
 
   for (int i = 1; i < argc; ++i) {
-    if (std::string{argv[i]} == "--sortByFreq")
+    std::string argument = argv[i];
+
+    if (argument == "--sortByFreq")
       sortByFreq = true;
+    else if (argument == "--wordCount")
+      wordCount = true;
+    else if (std::regex_match(
+                 argument, match, std::regex{"^--makePairs=(.+)$"})) {
+      makePairs = true;
+      try {
+        pairWordCount = std::stoul(match[1]);
+      } catch (...) {
+        std::cerr << "Failed to convert: " << match[1] << " to number\n";
+        return 1;
+      }
+    } else if (std::regex_match(argument, std::regex{"^--makePairs$"}))
+      makePairs = true;
     else {
       if (!posArgIdx)
         inputFile = argv[i];
@@ -45,5 +63,12 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-  print(db, std::cout, maxPositions, sortByFreq);
+  if (wordCount)
+    std::cout << wm::getWordCount(db) << std::endl;
+  else if (makePairs) {
+    auto pairs = wm::makeMostCommonPairs(db, pairWordCount);
+    for (auto const &[a, b] : pairs)
+      std::cout << a << " " << b << "\n";
+  } else
+    print(db, std::cout, maxPositions, sortByFreq);
 }

@@ -47,11 +47,55 @@ std::size_t getTotalWordCount(DatabasePtr const &database) {
   return database->totalWordCount;
 }
 
+std::size_t getWordCount(DatabasePtr const &database) {
+  return database->words.size();
+}
+
 std::vector<std::size_t> const &getWordPositions(std::string const &w,
                                                  DatabasePtr const &db) {
   if (!db->words.contains(w))
     throw std::runtime_error{"The requested word is not in the database: " + w};
   return db->words.at(w).positions;
+}
+
+std::vector<std::pair<char const *, char const *>>
+makeMostCommonPairs(DatabasePtr const &database,
+                    std::size_t const pairWordCount) {
+
+  auto const &words = database->words;
+
+  struct WordT {
+    std::string id{};
+    WordInfo info{};
+  };
+
+  std::vector<WordT> wordTable{};
+  wordTable.reserve(words.size());
+  for (auto const &[word, info] : words)
+    wordTable.push_back(WordT{word, info});
+
+  auto predicate = [](auto const &a, auto const &b) {
+    return a.info.positions.size() > b.info.positions.size();
+  };
+  std::sort(wordTable.begin(), wordTable.end(), predicate);
+
+  std::vector<char const *> mostCommonWords{};
+  if (pairWordCount)
+    mostCommonWords.resize(pairWordCount);
+  else
+    mostCommonWords.resize(wordTable.size());
+
+  for (std::size_t i = 0; i < mostCommonWords.size(); ++i)
+    mostCommonWords[i] = wordTable[i].id.c_str();
+
+  std::vector<std::pair<char const *, char const *>> pairs{};
+  pairs.reserve(mostCommonWords.size() * mostCommonWords.size());
+
+  for (std::size_t i = 0; i < mostCommonWords.size(); ++i)
+    for (std::size_t j = 0; j < mostCommonWords.size(); ++j)
+      pairs.push_back(std::pair(mostCommonWords[i], mostCommonWords[j]));
+
+  return pairs;
 }
 
 bool parseText(std::string const &inputFile, DatabasePtr &database) {
