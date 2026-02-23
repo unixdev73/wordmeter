@@ -21,44 +21,47 @@ OR THE USE OR OTHER DEALINGS IN THE SOFTWARE. */
 module;
 
 #include <algorithm>
+#include <concepts>
+#include <vector>
 
 export module wordmeter:distance;
 
 export namespace wm {
-template <template <typename> typename C>
-C<std::size_t> calcDist(C<std::size_t> const &posA,
-                        C<std::size_t> const &posB,
-                        std::size_t const totalWordCount) {
+template <template <typename> typename OutputContainer,
+          template <typename> typename InputContainer>
+OutputContainer<std::size_t> calcDist(InputContainer<std::size_t> const &posA,
+                                      InputContainer<std::size_t> const &posB,
+                                      std::size_t const totalWordCount) {
+
   if (posA.size() == 1 && posB.size() == 1 && *posA.begin() == *posB.begin())
-    return C<std::size_t>{totalWordCount - 1};
+    return OutputContainer<std::size_t>{totalWordCount - 1};
 
-  C<std::size_t> out{};
-  out.reserve(posA.size());
+  OutputContainer<std::size_t> out{};
+  if constexpr (std::same_as<OutputContainer<std::size_t>,
+                             std::vector<std::size_t>>)
+    out.reserve(posA.size());
 
-  for (std::size_t i = 0; i < posA.size(); ++i) {
-    bool loopAround = false;
-    auto nearestB = std::upper_bound(posB.begin(), posB.end(), posA.at(i));
+  auto const p = [](auto const a, auto const b) { return a > b; };
+
+  for (auto nearestA = posA.begin(); nearestA != posA.end();) {
+    auto nearestB = std::upper_bound(posB.begin(), posB.end(), *nearestA);
+
     if (nearestB == posB.end()) {
-      nearestB = posB.begin();
-      loopAround = true;
+      auto rnearestA =
+          std::upper_bound(posA.rbegin(), posA.rend(), posB.front(), p);
+      if (rnearestA == posA.rend())
+        out.insert(out.end(), totalWordCount - posA.back() + posB.front());
+      return out;
     }
 
-    auto nearestA = posA.begin();
-    if (loopAround)
-      nearestA = --(posA.end());
+    auto rnearestA = std::upper_bound(posA.rbegin(), posA.rend(), *nearestB, p);
+
+    if (rnearestA.base() > nearestA)
+      nearestA = rnearestA.base();
     else
-      nearestA =
-          std::prev(std::lower_bound(posA.begin(), posA.end(), *nearestB));
+      ++nearestA;
 
-    i = nearestA - posA.begin();
-
-    if (*nearestA == *nearestB)
-      continue;
-
-    if (loopAround)
-      out.push_back(totalWordCount - *nearestA + *nearestB);
-    else
-      out.push_back(*nearestB - *nearestA);
+    out.insert(out.end(), *nearestB - *rnearestA);
   }
 
   return out;

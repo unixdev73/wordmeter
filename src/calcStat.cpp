@@ -18,6 +18,7 @@ DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
 ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
 OR THE USE OR OTHER DEALINGS IN THE SOFTWARE. */
 
+#include <unordered_map>
 #include <functional>
 #include <filesystem>
 #include <algorithm>
@@ -25,12 +26,9 @@ OR THE USE OR OTHER DEALINGS IN THE SOFTWARE. */
 #include <fstream>
 #include <iomanip>
 #include <vector>
+#include <regex>
 
 import wordmeter;
-
-bool calcAvg(wm::DatabasePtr const &db,
-             std::string const &wordA,
-             std::string const &wordB);
 
 int main(int argc, char **argv) {
   if (argc < 3) {
@@ -40,22 +38,33 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-  bool dist{}, minDist{}, maxDist{}, avgDist{}, sqVariance{}, all{};
-  std::string inputFile{}, wordPairFile{}, wordA{}, wordB{};
+  bool dist{}, minDist{}, maxDist{}, avgDist{}, sqVariant{}, hist{}, all{};
+  std::string inputFile{}, wordPairFile{}, outputDir{"./"}, wordA{}, wordB{};
   short posArgIdx{};
+  std::smatch match{};
 
   for (int i = 1; i < argc; ++i) {
-    if (std::string{argv[i]} == "--dist")
+    std::string const argument = argv[i];
+    if (argument == "--dist")
       dist = true;
-    else if (std::string{argv[i]} == "--minDist")
+    else if (argument == "--minDist")
       minDist = true;
-    else if (std::string{argv[i]} == "--maxDist")
+    else if (argument == "--maxDist")
       maxDist = true;
-    else if (std::string{argv[i]} == "--avgDist")
+    else if (argument == "--avgDist")
       avgDist = true;
-    else if (std::string{argv[i]} == "--sqVariance")
-      sqVariance = true;
-    else if (std::string{argv[i]} == "--all")
+    else if (argument == "--sqVariant")
+      sqVariant = true;
+    else if (std::regex_match(argument, match, std::regex{"^--hist=(.+)$"})) {
+      outputDir = match[1];
+      if (!std::filesystem::exists(outputDir)) {
+        std::cerr << "The directory: " << outputDir << " does not exist\n";
+        return 1;
+      }
+      hist = true;
+    } else if (argument == "--hist")
+      hist = true;
+    else if (argument == "--all")
       all = true;
     else {
       if (!posArgIdx)
@@ -99,15 +108,17 @@ int main(int argc, char **argv) {
     try {
       auto const &posA = wm::getWordPositions(wordA, db);
       auto const &posB = wm::getWordPositions(wordB, db);
-      distances = wm::calcDist(posA, posB, totalWordCnt);
+      distances = wm::calcDist<std::vector>(posA, posB, totalWordCnt);
     } catch (std::exception const &error) {
       std::cerr << error.what() << "\n";
       return 1;
     }
 
-    std::cout << wordA << " " << wordB << std::endl;
+    if (dist || minDist || maxDist || avgDist || sqVariant || all)
+      std::cout << wordA << " " << wordB << std::endl;
 
     if (dist || all) {
+      std::cout << std::setw(colWidth) << "count " << distances.size() << " ";
       std::cout << std::setw(colWidth) << "distances ";
       for (std::size_t i = 0; i < distances.size(); ++i) {
         std::cout << distances[i];
@@ -133,24 +144,54 @@ int main(int argc, char **argv) {
       std::cout << val << std::endl;
     }
 
-    if (avgDist || sqVariance || all) {
-      double avgDistance{}, squareVariance{};
+    if (avgDist || sqVariant || all) {
+      double avgDistance{}, squareVariant{};
       for (auto const d : distances) {
-        squareVariance += d * d;
+        squareVariant += d * d;
         avgDistance += d;
       }
       avgDistance = avgDistance / distances.size();
-      squareVariance -= avgDistance * avgDistance;
+      squareVariant = squareVariant / distances.size();
+      squareVariant -= avgDistance * avgDistance;
 
       if (avgDist || all) {
         std::cout << std::setw(colWidth) << "avgDistance ";
         std::cout << avgDistance << std::endl;
       }
 
-      if (sqVariance || all) {
-        std::cout << std::setw(colWidth) << "sqVariance ";
-        std::cout << squareVariance << std::endl;
+      if (sqVariant || all) {
+        std::cout << std::setw(colWidth) << "sqVariant ";
+        std::cout << squareVariant << std::endl;
       }
+    }
+
+    if (hist) {
+      std::string const output = outputDir + "/" + wordA + "_" + wordB + ".txt";
+      std::ofstream histData{output};
+      if (!histData.is_open()) {
+        std::cerr << "Failed to open histogram for writing: " << output << "\n";
+        return 1;
+      }
+
+      std::unordered_map<std::size_t, std::size_t> distOccMap{};
+      for (auto const &distance : distances) {
+        if (!distOccMap.contains(distance))
+          distOccMap.emplace(distance, 0);
+        ++distOccMap.at(distance);
+      }
+
+      std::vector<std::pair<std::size_t, std::size_t>> distOcc{};
+      distOcc.reserve(distOccMap.size());
+      for (auto const &[distance, occurrence] : distOccMap)
+        distOcc.push_back({distance, occurrence});
+
+      auto predicate = [](auto const &a, auto const &b) {
+        return a.first < b.first; // sort by distance
+      };
+      std::sort(distOcc.begin(), distOcc.end(), predicate);
+
+      for (auto const &[distance, occurrence] : distOcc)
+        histData << distance << " " << occurrence << "\n";
     }
   }
 

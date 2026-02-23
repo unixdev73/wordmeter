@@ -22,8 +22,9 @@ target_link_libraries(calcStat PRIVATE wordmeter)
 # --minDist prints the smallest distance between wordA and wordB.
 # --maxDist prints the largest distance between wordA and wordB.
 # --avgDist prints the average distance between wordA and wordB.
-# --sqVariance prints the square variance of wordA and wordB.
-# --all applies all options.
+# --sqVariant prints the square variance of wordA and wordB.
+# --all applies all of the above options.
+# --hist[=outDir] generates distance histograms for each word pair.
 
 add_executable(catDb catDb.cpp)
 target_link_libraries(catDb PRIVATE wordmeter)

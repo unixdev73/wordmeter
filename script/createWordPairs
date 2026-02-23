@@ -1,0 +1,16 @@
+#!/usr/bin/bash
+
+# This script scans the provided directory and outputs the word pairs from there
+
+if [ -z "$1" ]; then
+	echo "Usage: $(basename $0) path/to/directory/with/histogram/data"
+	exit 1;
+fi
+
+declare -r files="$(ls $1)";
+
+for file in ${files}; do
+	declare wordA="$(echo ${file} | cut -f2 -d_ | cut -f1 -d. | cut -f1 -d-)";
+	declare wordB="$(echo ${file} | cut -f2 -d_ | cut -f1 -d. | cut -f2 -d-)";
+	echo "${wordA} ${wordB}";
+done
