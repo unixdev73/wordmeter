@@ -10,28 +10,9 @@ target_sources(wordmeter PRIVATE database.cpp)
 
 add_executable(parseText parseText.cpp)
 target_link_libraries(parseText PRIVATE wordmeter)
-# Usage: parseText <inputFile.txt> <outputFile.db>
 
 add_executable(calcStat calcStat.cpp)
 target_link_libraries(calcStat PRIVATE wordmeter)
-# Usage: calcStat [options] <inputFile.db> <wordPairFile.txt>
-# Usage: calcStat [options] <inputFile.txt> <wordPairFile.txt>
-
-# Options:
-# --dist prints the distances between each occurrence of wordA and wordB.
-# --minDist prints the smallest distance between wordA and wordB.
-# --maxDist prints the largest distance between wordA and wordB.
-# --avgDist prints the average distance between wordA and wordB.
-# --sqVariant prints the square variance of wordA and wordB.
-# --all applies all of the above options.
-# --hist[=outDir] generates distance histograms for each word pair.
-# --normHist divides the count of each distance by the number of all distances.
 
 add_executable(catDb catDb.cpp)
 target_link_libraries(catDb PRIVATE wordmeter)
-# Usage: catDb [options] <inputFile.db> [<maxPosColSz>]
-
-# Options:
-# --sortByFreq sorts the output by popularity in descending order.
-# --wordCount prints only the number of unique words in the database.
-# --makePairs[=N] prints all (N^2) word pairs of the N most common words.
