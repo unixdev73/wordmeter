@@ -1,5 +1,7 @@
 #!/usr/bin/bash
 
+# This script compares the output of calcStat --all and the reference files
+
 declare -r referenceFilesDir="$1";
 declare -r wordStatFile="$2";
 
