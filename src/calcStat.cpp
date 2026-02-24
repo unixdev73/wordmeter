@@ -38,7 +38,8 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-  bool dist{}, minDist{}, maxDist{}, avgDist{}, sqVariant{}, hist{}, all{};
+  bool dist{}, minDist{}, maxDist{}, avgDist{}, sqVariant{}, hist{}, normHist{},
+      all{};
   std::string inputFile{}, wordPairFile{}, outputDir{"./"}, wordA{}, wordB{};
   short posArgIdx{};
   std::smatch match{};
@@ -64,6 +65,8 @@ int main(int argc, char **argv) {
       hist = true;
     } else if (argument == "--hist")
       hist = true;
+    else if (argument == "--normHist")
+      normHist = true;
     else if (argument == "--all")
       all = true;
     else {
@@ -108,7 +111,7 @@ int main(int argc, char **argv) {
     try {
       auto const &posA = wm::getWordPositions(wordA, db);
       auto const &posB = wm::getWordPositions(wordB, db);
-      distances = wm::calcDist<std::vector>(posA, posB, totalWordCnt);
+      distances = wm::calcDist(posA, posB, totalWordCnt);
     } catch (std::exception const &error) {
       std::cerr << error.what() << "\n";
       return 1;
@@ -180,10 +183,15 @@ int main(int argc, char **argv) {
         ++distOccMap.at(distance);
       }
 
-      std::vector<std::pair<std::size_t, std::size_t>> distOcc{};
+      std::vector<std::pair<std::size_t, double>> distOcc{};
       distOcc.reserve(distOccMap.size());
-      for (auto const &[distance, occurrence] : distOccMap)
-        distOcc.push_back({distance, occurrence});
+      if (normHist)
+        for (auto const &[distance, occurrence] : distOccMap)
+          distOcc.push_back(
+              {distance, double(occurrence) / double(distances.size())});
+      else
+        for (auto const &[distance, occurrence] : distOccMap)
+          distOcc.push_back({distance, double(occurrence)});
 
       auto predicate = [](auto const &a, auto const &b) {
         return a.first < b.first; // sort by distance
@@ -191,7 +199,8 @@ int main(int argc, char **argv) {
       std::sort(distOcc.begin(), distOcc.end(), predicate);
 
       for (auto const &[distance, occurrence] : distOcc)
-        histData << distance << " " << occurrence << "\n";
+        histData << distance << " " << std::setprecision(15) << occurrence
+                 << "\n";
     }
   }
 

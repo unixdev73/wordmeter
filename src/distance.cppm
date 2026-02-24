@@ -21,27 +21,17 @@ OR THE USE OR OTHER DEALINGS IN THE SOFTWARE. */
 module;
 
 #include <algorithm>
-#include <concepts>
 #include <vector>
 
 export module wordmeter:distance;
 
 export namespace wm {
-template <template <typename> typename OutputContainer,
-          template <typename> typename InputContainer>
-OutputContainer<std::size_t> calcDist(InputContainer<std::size_t> const &posA,
-                                      InputContainer<std::size_t> const &posB,
-                                      std::size_t const totalWordCount) {
-
-  if (posA.size() == 1 && posB.size() == 1 && *posA.begin() == *posB.begin())
-    return OutputContainer<std::size_t>{totalWordCount - 1};
-
-  OutputContainer<std::size_t> out{};
-  if constexpr (std::same_as<OutputContainer<std::size_t>,
-                             std::vector<std::size_t>>)
-    out.reserve(posA.size());
-
+std::vector<std::size_t> calcDist(std::vector<std::size_t> const &posA,
+                                  std::vector<std::size_t> const &posB,
+                                  std::size_t const totalWordCount) {
   auto const p = [](auto const a, auto const b) { return a > b; };
+  std::vector<std::size_t> out{};
+  out.reserve(posA.size());
 
   for (auto nearestA = posA.begin(); nearestA != posA.end();) {
     auto nearestB = std::upper_bound(posB.begin(), posB.end(), *nearestA);

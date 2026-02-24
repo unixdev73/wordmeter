@@ -25,6 +25,7 @@ target_link_libraries(calcStat PRIVATE wordmeter)
 # --sqVariant prints the square variance of wordA and wordB.
 # --all applies all of the above options.
 # --hist[=outDir] generates distance histograms for each word pair.
+# --normHist divides the count of each distance by the number of all distances.
 
 add_executable(catDb catDb.cpp)
 target_link_libraries(catDb PRIVATE wordmeter)

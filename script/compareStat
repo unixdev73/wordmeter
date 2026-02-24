@@ -15,6 +15,9 @@ fi
 
 tolerance=1e-9  # define a small tolerance for floating-point comparisons
 
+declare entryCnt="$(echo "$(ls "${referenceFilesDir}")" | wc -l)";
+entryCnt="${entryCnt// /}";
+declare entry="0";
 declare mCnt="0";
 
 for refFile in $(ls "${referenceFilesDir}"); do
@@ -38,29 +41,48 @@ for refFile in $(ls "${referenceFilesDir}"); do
 
 	declare mismatch="false";
 
-	if !(( $(echo "scale=10; sqrt((${distCount} - ${refDistCount})^2) < $tolerance" | bc -l) )) || \
-		 !(( $(echo "scale=10; sqrt((${maxDist} - ${refMaxDist})^2) < $tolerance" | bc -l) )) || \
-		 !(( $(echo "scale=10; sqrt((${minDist} - ${refMinDist})^2) < $tolerance" | bc -l) )) || \
-		 !(( $(echo "scale=10; sqrt((${avgDist} - ${refAvgDist})^2) < $tolerance" | bc -l) )) || \
-		 !(( $(echo "scale=10; sqrt((${sqVariant} - ${refSqVariant})^2) < $tolerance" | bc -l) )); then
-		mismatch="true";
-		mCnt=$((mCnt + 1));
+	dist_diff=$(echo "scale=10; sqrt((${distCount} - ${refDistCount})^2) < $tolerance" | bc -l)
+	min_dist_diff=$(echo "scale=10; sqrt((${minDist} - ${refMinDist})^2) < $tolerance" | bc -l)
+	max_dist_diff=$(echo "scale=10; sqrt((${maxDist} - ${refMaxDist})^2) < $tolerance" | bc -l)
+	avg_dist_diff=$(echo "scale=10; sqrt((${avgDist} - ${refAvgDist})^2) < $tolerance" | bc -l)
+	sq_variant_diff=$(echo "scale=10; sqrt((${sqVariant} - ${refSqVariant})^2) < $tolerance" | bc -l)
+
+	if [ "$dist_diff" -eq 0 ] || [ "$max_dist_diff" -eq 0 ] || [ "$min_dist_diff" -eq 0 ] || \
+		 [ "$avg_dist_diff" -eq 0 ] || [ "$sq_variant_diff" -eq 0 ]; then
+		 echo "${wordA} ${wordB}"
+		 mismatch="true"
+		 mCnt=$((mCnt + 1))
 	fi
 
-	if [ "${mismatch}" = "true" ]; then
-		echo "${wordA} ${wordB}";
-		echo "tgt dst: ${distCount}";
-		echo "ref dst: ${refDistCount}"
-		echo "tgt min: ${minDist}";
-		echo "ref min: ${refMinDist}";
-		echo "tgt max: ${maxDist}";
-		echo "ref max: ${refMaxDist}";
-		echo "tgt avg: ${avgDist}";
-		echo "ref avg: ${refAvgDist}";
-		echo "tgt sqv: ${sqVariant}";
-		echo "ref sqv: ${refSqVariant}";
+	if [ "$dist_diff" -eq 0 ]; then
+		 echo "tgt dst: ${distCount}"
+		 echo "ref dst: ${refDistCount}"
+	fi
+	if [ "$min_dist_diff" -eq 0 ]; then
+		 echo "tgt min: ${minDist}"
+		 echo "ref min: ${refMinDist}"
+	fi
+	if [ "$max_dist_diff" -eq 0 ]; then
+		 echo "tgt max: ${maxDist}"
+		 echo "ref max: ${refMaxDist}"
+	fi
+	if [ "$avg_dist_diff" -eq 0 ]; then
+		 echo "tgt avg: ${avgDist}"
+		 echo "ref avg: ${refAvgDist}"
+	fi
+	if [ "$sq_variant_diff" -eq 0 ]; then
+		 echo "tgt sqv: ${sqVariant}"
+		 echo "ref sqv: ${refSqVariant}"
+	fi
+
+	entry=$((entry + 1));
+
+	if [ "${mismatch}" != "true" ]; then
+		printf "\r${entry}/${entryCnt} OK";
 	fi
 done
+
+echo "";
 
 if [ "${mismatch}" = "true" ]; then
 	echo "${mCnt} mismatches";

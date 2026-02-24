@@ -1,0 +1,48 @@
+#!/usr/bin/bash
+
+declare -r referenceFilesDir="$1";
+declare -r targetFilesDir="$2";
+
+if [ -z "${referenceFilesDir}" ]; then
+	echo "The reference files directory must be specified";
+	exit 1;
+fi
+
+if [ -z "${targetFilesDir}" ]; then
+	echo "The target files dir must be specified";
+	exit 1;
+fi
+
+tolerance=1e-9  # define a small tolerance for floating-point comparisons
+
+declare entryCnt="$(echo "$(ls "${referenceFilesDir}")" | wc -l)";
+entryCnt="${entryCnt// /}";
+declare entry="0";
+declare mCnt="0";
+
+for refFile in $(ls "${referenceFilesDir}"); do
+	declare wordA=$(echo ${refFile} | cut -f2 -d_ | cut -f1 -d. | cut -f1 -d-);
+	declare wordB=$(echo ${refFile} | cut -f2 -d_ | cut -f1 -d. | cut -f2 -d-);
+
+	declare mismatch="false";
+
+	#dist_diff=$(echo "scale=10; sqrt((${distCount} - ${refDistCount})^2) < $tolerance" | bc -l)
+
+	if cmp -s "${referenceFilesDir}/${refFile}" "${targetFilesDir}/${wordA}_${wordB}.txt"; then
+		 echo "${wordA} ${wordB}"
+		 mismatch="true"
+		 mCnt=$((mCnt + 1))
+	fi
+
+	entry=$((entry + 1));
+
+	if [ "${mismatch}" != "true" ]; then
+		printf "\r${entry}/${entryCnt} OK";
+	fi
+done
+
+echo "";
+
+if [ "${mismatch}" = "true" ]; then
+	echo "${mCnt} mismatches";
+fi
