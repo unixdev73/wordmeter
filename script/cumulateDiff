@@ -1,0 +1,29 @@
+#!/usr/bin/bash
+
+# This script sums up the absolute difference of each value of two cumulant files.
+
+declare -r file1="$1";
+declare -r file2="$2";
+
+if [ ! -f "${file1}" ]; then
+	echo "The file: ${file1} does not exist";
+	exit 1;
+fi
+
+if [ ! -f "${file2}" ]; then
+	echo "The file: ${file2} does not exist";
+	exit 1;
+fi
+
+awk '
+	NR == FNR { a[FNR] = $2; next }
+	{ b[FNR] = $2 }
+	END {
+		max = (length(a) > length(b) ? length(a) : length(b))
+		for (i = 1; i <= max; ++i) {
+			diff = a[i] - b[i];
+			sum += (diff < 0 ? -diff : diff)
+		}
+		print sum;
+	}
+' "${file1}" "${file2}";

@@ -55,6 +55,7 @@ Options:
 --all applies all of the above options.
 --hist[=outDir] generates distance histograms for each word pair.
 --normHist divides the count of each distance by the number of all distances.
+--cumulate adds each histogram value entry to the next in a separate file.
 ```
 
 ### catDb

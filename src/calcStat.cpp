@@ -39,7 +39,7 @@ int main(int argc, char **argv) {
   }
 
   bool dist{}, minDist{}, maxDist{}, avgDist{}, sqVariant{}, hist{}, normHist{},
-      all{};
+      cumulate{}, all{};
   std::string inputFile{}, wordPairFile{}, outputDir{"./"}, wordA{}, wordB{};
   short posArgIdx{};
   std::smatch match{};
@@ -67,6 +67,8 @@ int main(int argc, char **argv) {
       hist = true;
     else if (argument == "--normHist")
       normHist = true;
+    else if (argument == "--cumulate")
+      cumulate = true;
     else if (argument == "--all")
       all = true;
     else {
@@ -169,21 +171,35 @@ int main(int argc, char **argv) {
     }
 
     if (hist) {
-      std::string const output = outputDir + "/" + wordA + "_" + wordB + ".txt";
-      std::ofstream histData{output};
+      std::string const histFile =
+          outputDir + "/" + wordA + "_" + wordB + ".txt";
+      std::string const cumuFile =
+          outputDir + "/" + wordA + "_" + wordB + ".cumulated" + ".txt";
+      std::ofstream histData{histFile};
       if (!histData.is_open()) {
-        std::cerr << "Failed to open histogram for writing: " << output << "\n";
+        std::cerr << "Failed to open histogram for writing: " << histFile
+                  << "\n";
+        return 1;
+      }
+
+      std::ofstream cumuData{cumuFile};
+      if (!histData.is_open()) {
+        std::cerr << "Failed to open histogram for writing: " << cumuFile
+                  << "\n";
         return 1;
       }
 
       std::unordered_map<std::size_t, std::size_t> distOccMap{};
+      std::vector<std::pair<std::size_t, double>> distOcc{};
+      std::vector<double> cumulated{};
+
       for (auto const &distance : distances) {
         if (!distOccMap.contains(distance))
           distOccMap.emplace(distance, 0);
         ++distOccMap.at(distance);
       }
 
-      std::vector<std::pair<std::size_t, double>> distOcc{};
+      cumulated.reserve(distOccMap.size());
       distOcc.reserve(distOccMap.size());
       if (normHist)
         for (auto const &[distance, occurrence] : distOccMap)
@@ -198,9 +214,22 @@ int main(int argc, char **argv) {
       };
       std::sort(distOcc.begin(), distOcc.end(), predicate);
 
+      if (cumulate) {
+        double val{};
+        for (auto const &[distance, freq] : distOcc) {
+          cumulated.push_back(freq + val);
+          val = cumulated.back();
+        }
+      }
+
       for (auto const &[distance, occurrence] : distOcc)
         histData << distance << " " << std::setprecision(15) << occurrence
                  << "\n";
+
+      if (cumulate)
+        for (std::size_t i = 0; i < distOcc.size(); ++i)
+          cumuData << distOcc[i].first << " " << std::setprecision(15)
+                   << cumulated[i] << "\n";
     }
   }
 
