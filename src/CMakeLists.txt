@@ -16,3 +16,6 @@ target_link_libraries(calcStat PRIVATE wordmeter)
 
 add_executable(catDb catDb.cpp)
 target_link_libraries(catDb PRIVATE wordmeter)
+
+add_executable(genMostPopPairs genMostPopPairs.cpp)
+target_link_libraries(genMostPopPairs PRIVATE wordmeter)

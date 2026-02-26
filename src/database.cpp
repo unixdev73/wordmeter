@@ -58,6 +58,45 @@ std::vector<std::size_t> const &getWordPositions(std::string const &w,
   return db->words.at(w).positions;
 }
 
+std::vector<std::pair<std::string, std::size_t>>
+getMostCommonWords(DatabasePtr const &database, std::size_t const wordCount) {
+  if (database->words.size() < wordCount)
+    throw std::runtime_error{"The database does not contain wordCount words"};
+
+  struct WordT {
+    std::string id;
+    std::size_t occ{};
+  };
+
+  std::vector<std::pair<std::string, std::size_t>> words{};
+  words.reserve(database->words.size());
+
+  for (auto const &[word, info] : database->words)
+    words.push_back({word, info.positions.size()});
+
+  auto predicate = [](auto const &a, auto const &b) {
+    return a.second > b.second;
+  };
+  std::sort(words.begin(), words.end(), predicate);
+
+  for (; words.size() > wordCount;)
+    words.pop_back();
+
+  return words;
+}
+
+std::vector<std::pair<char const *, char const *>>
+makePairs(std::vector<std::pair<std::string, std::size_t>> const &v) {
+  std::vector<std::pair<char const *, char const *>> out{};
+  out.reserve(v.size() * v.size());
+
+  for (std::size_t i = 0; i < v.size(); ++i)
+    for (std::size_t j = 0; j < v.size(); ++j)
+      out.push_back({v[i].first.c_str(), v[j].first.c_str()});
+
+  return out;
+}
+
 std::vector<std::pair<char const *, char const *>>
 makeMostCommonPairs(DatabasePtr const &database,
                     std::size_t const pairWordCount) {

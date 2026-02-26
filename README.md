@@ -77,3 +77,12 @@ Options:
 --wordCount prints only the number of unique words in the database.
 --makePairs[=N] prints all (N^2) word pairs of the N most common words.
 ```
+
+### genMostPopPairs
+
+This utility will generate all possible word pairs from N most popular words
+across a given set of input files.
+
+```console
+Usage: genMostPopPairs inputFile.db [inputFile.db]... N
+```

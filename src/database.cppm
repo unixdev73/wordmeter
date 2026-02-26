@@ -56,6 +56,12 @@ std::size_t getWordCount(DatabasePtr const &database);
 std::vector<std::size_t> const &getWordPositions(std::string const &word,
                                                  DatabasePtr const &db);
 
+std::vector<std::pair<std::string, std::size_t>>
+getMostCommonWords(DatabasePtr const &database, std::size_t const wordCount);
+
+std::vector<std::pair<char const *, char const *>>
+makePairs(std::vector<std::pair<std::string, std::size_t>> const &);
+
 std::vector<std::pair<char const *, char const *>>
 makeMostCommonPairs(DatabasePtr const &database,
                     std::size_t const pairWordCount);
