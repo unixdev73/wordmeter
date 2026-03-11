@@ -13,6 +13,23 @@
  *  mat2D <- compareTexts(db, c("MyText1", "MyText2", ...))
  */
 
+/* DEBUG UTILITIES:
+ * Print currently selected word pairs:
+ *  printWordPairs(db)
+ *
+ * Print distances for a given word pair in a given text:
+ *  printDistances(db, "MyText1", "wordA", "wordB")
+ *
+ * Print histogram for a given word pair in a given text:
+ *  printHistogram(db, "MyText1", "wordA", "wordB")
+ *
+ * Print cumulant for a given word pair in a given text:
+ *  printCumulant(db, "MyText1", "wordA", "wordB")
+ *
+ * Print cumulant diff for a given word pair for a given text pair:
+ *  printCumulantDiff(db, "MyText1", "MyText2", "wordA", "wordB")
+ */
+
 #include <Rcpp.h>
 
 struct WordInfo {
@@ -47,6 +64,142 @@ struct WordmeterDatabase {
 };
 
 using DbHandle = Rcpp::XPtr<WordmeterDatabase>;
+
+template <typename T>
+double calcSum(T const &c1, T const &c2) {
+	auto const begin = std::min(c1.begin()->first, c2.begin()->first);
+	auto const end = std::max(c1.rbegin()->first, c2.rbegin()->first);
+	double y1{}, y2{}, sum{};
+
+	for (std::size_t i = begin; i <= end; ++i) {
+
+		if (c1.count(i))
+			y1 = c1.at(i);
+		if (c2.count(i))
+			y2 = c2.at(i);
+
+		sum += std::abs(y1 - y2);
+	}
+
+	return sum;
+};
+
+// [[Rcpp::export]]
+void printCumulantDiff(DbHandle const& db, std::string const& text1Id, std::string const& text2Id,
+		std::string const& wordA, std::string const& wordB) {
+	auto const wmDb = db.get();
+	if (!wmDb) return;
+
+	if (!wmDb->textPairInfo.count(text1Id)) {
+		std::cerr << "The text: " << text1Id << " is not a parsed text" << std::endl;
+		return;
+	}
+	if (!wmDb->textPairInfo.count(text2Id)) {
+		std::cerr << "The text: " << text2Id << " is not a parsed text" << std::endl;
+		return;
+	}
+
+	auto const wp = std::pair(wordA, wordB);
+
+	if (!wmDb->textPairInfo.at(text1Id).cumulants.count(wp)) {
+		std::cerr << "The text: " << text1Id << " does not have a cumulant for word pair: [";
+		std::cerr << wordA << ", " << wordB << "]" << std::endl;
+		return;
+	}
+	if (!wmDb->textPairInfo.at(text2Id).cumulants.count(wp)) {
+		std::cerr << "The text: " << text2Id << " does not have a cumulant for word pair: [";
+		std::cerr << wordA << ", " << wordB << "]" << std::endl;
+		return;
+	}
+
+	auto const& cumulant1 = wmDb->textPairInfo.at(text1Id).cumulants.at(wp);
+	auto const& cumulant2 = wmDb->textPairInfo.at(text2Id).cumulants.at(wp);
+	std::cout << calcSum(cumulant1, cumulant2) << std::endl;
+}
+
+// [[Rcpp::export]]
+void printCumulant(DbHandle const& db, std::string const& textId, std::string const& wordA,
+		std::string const& wordB) {
+	auto const wmDb = db.get();
+	if (!wmDb) return;
+
+	auto const wp = std::pair(wordA, wordB);
+	if (!wmDb->textPairInfo.count(textId)) {
+		std::cerr << "The text: " << textId << " is not a parsed text" << std::endl;
+		return;
+	}
+
+	auto const& tpInfo = wmDb->textPairInfo.at(textId);
+	if (!tpInfo.cumulants.count(wp)) {
+		std::cerr << "There is no entry for the word pair [" << wordA << ", " << wordB << "]";
+		std::cerr << std::endl;
+		return;
+	}
+
+	auto const& cumulant = tpInfo.cumulants.at(wp);
+	for (auto const& [distance, frequency] : cumulant)
+		std::cout << distance << " " << frequency << "\n";
+	std::cout << std::flush;
+}
+
+// [[Rcpp::export]]
+void printHistogram(DbHandle const& db, std::string const& textId, std::string const& wordA,
+		std::string const& wordB) {
+	auto const wmDb = db.get();
+	if (!wmDb) return;
+
+	auto const wp = std::pair(wordA, wordB);
+	if (!wmDb->textPairInfo.count(textId)) {
+		std::cerr << "The text: " << textId << " is not a parsed text" << std::endl;
+		return;
+	}
+
+	auto const& tpInfo = wmDb->textPairInfo.at(textId);
+	if (!tpInfo.histograms.count(wp)) {
+		std::cerr << "There is no entry for the word pair [" << wordA << ", " << wordB << "]";
+		std::cerr << std::endl;
+		return;
+	}
+
+	auto const& histogram = tpInfo.histograms.at(wp);
+	for (auto const& [distance, frequency] : histogram)
+		std::cout << distance << " " << frequency << "\n";
+	std::cout << std::flush;
+}
+
+// [[Rcpp::export]]
+void printDistances(DbHandle const& db, std::string const& textId, std::string const& wordA,
+		std::string const& wordB) {
+	auto const wmDb = db.get();
+	if (!wmDb) return;
+
+	auto const wp = std::pair(wordA, wordB);
+	if (!wmDb->textPairInfo.count(textId)) {
+		std::cerr << "The text: " << textId << " is not a parsed text" << std::endl;
+		return;
+	}
+
+	auto const& tpInfo = wmDb->textPairInfo.at(textId);
+	if (!tpInfo.distances.count(wp)) {
+		std::cerr << "There is no entry for the word pair [" << wordA << ", " << wordB << "]";
+		std::cerr << std::endl;
+		return;
+	}
+
+	auto const& distances = tpInfo.distances.at(wp);
+	for (auto dist : distances)
+		std::cout << dist << " ";
+	std::cout << std::endl;
+}
+
+// [[Rcpp::export]]
+void printWordPairs(DbHandle const& db) {
+	auto const wmDb = db.get();
+	if (!wmDb) return;
+	for (auto const& [wordA, wordB] : wmDb->wordPairs)
+		std::cout << wordA << " " << wordB << "\n";
+	std::cout << std::flush;
+}
 
 std::map<std::size_t, double>
 calcCumulant(std::map<std::size_t, double> const& histogram) {
@@ -198,24 +351,6 @@ Rcpp::NumericMatrix compareTexts(DbHandle const& db, std::vector<std::string> co
 	std::unordered_map<std::string, std::size_t> textMatMap;
 	for (std::size_t i = 0; i < texts.size(); ++i)
 		textMatMap.emplace(texts[i], i);
-
-  auto calcSum = [](auto const &c1, auto const &c2) {
-    auto const begin = std::min(c1.begin()->first, c2.begin()->first);
-    auto const end = std::max(c1.rbegin()->first, c2.rbegin()->first);
-    double y1{}, y2{}, sum{};
-
-    for (std::size_t i = begin; i <= end; ++i) {
-
-      if (c1.count(i))
-        y1 = c1.at(i);
-      if (c2.count(i))
-        y2 = c2.at(i);
-
-      sum += std::abs(y1 - y2);
-    }
-
-    return sum;
-  };
 
 	auto const textCombos = makeCombinations(texts);
 
