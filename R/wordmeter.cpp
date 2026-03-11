@@ -143,6 +143,11 @@ Rcpp::NumericMatrix compareTexts(DbHandle const& db, std::vector<std::string> co
 		return Rcpp::NumericMatrix{};
 	}
 
+	if (texts.size() < 2) {
+		std::cerr << "There must be at least two texts specified" << std::endl;
+		return Rcpp::NumericMatrix{};
+	}
+
 	for (std::size_t i = 0; i < texts.size(); ++i) {
 		if (!wmDb->texts.count(texts[i])) {
 			std::cerr << "The text id: " << texts[i] << " is not the id of a parsed text" << std::endl;
@@ -190,12 +195,52 @@ Rcpp::NumericMatrix compareTexts(DbHandle const& db, std::vector<std::string> co
 		}
 	}
 
-	auto textCombos = makeCombinations(texts);
+	std::unordered_map<std::string, std::size_t> textMatMap;
+	for (std::size_t i = 0; i < texts.size(); ++i)
+		textMatMap.emplace(texts[i], i);
+
+  auto calcSum = [](auto const &c1, auto const &c2) {
+    auto const begin = std::min(c1.begin()->first, c2.begin()->first);
+    auto const end = std::max(c1.rbegin()->first, c2.rbegin()->first);
+    double y1{}, y2{}, sum{};
+
+    for (std::size_t i = begin; i <= end; ++i) {
+
+      if (c1.count(i))
+        y1 = c1.at(i);
+      if (c2.count(i))
+        y2 = c2.at(i);
+
+      sum += std::abs(y1 - y2);
+    }
+
+    return sum;
+  };
+
+	auto const textCombos = makeCombinations(texts);
+
 	// compute discrete integrals from cumulants from each file for each word pair
 	// sum the difference squares and take the square root
 	// insert the result in the appropriate cell in the matrix
+	for (auto const& [textA, textB] : textCombos) {
+		std::vector<double> integralResults;
+		integralResults.reserve(wmDb->wordPairs.size());
 
-	return Rcpp::NumericMatrix{};
+		for (auto const& wp : wmDb->wordPairs) {
+			auto const& cumulantA = wmDb->textPairInfo.at(textA).cumulants.at(wp);
+			auto const& cumulantB = wmDb->textPairInfo.at(textB).cumulants.at(wp);
+			integralResults.push_back(calcSum(cumulantA, cumulantB));
+		}
+
+		double textSquares{};
+		for (auto intSum : integralResults)
+			textSquares += intSum * intSum;
+		auto const totalTextDiff = std::sqrt(textSquares);
+		compTable(textMatMap[textA], textMatMap[textB]) = totalTextDiff;
+		compTable(textMatMap[textB], textMatMap[textA]) = totalTextDiff;
+	}
+
+	return compTable;
 }
 
 std::vector<std::pair<std::string, std::size_t>>
